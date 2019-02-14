@@ -11,6 +11,10 @@ import android.widget.TextView
 import io.reactivex.Observable
 import io.reactivex.functions.Consumer
 import kotlinx.android.synthetic.main.activity_main.*
+import java.math.BigDecimal
+import java.text.DateFormat
+import java.text.DecimalFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
@@ -28,22 +32,27 @@ class MainActivity : AppCompatActivity() {
 
         stockDataAdapter = StockDataAdapter()
         recyclerView.adapter = stockDataAdapter
+
+        Observable.just(
+                StockUpdate("google", BigDecimal(12.43), Date()),
+                StockUpdate("apple", BigDecimal(645.1), Date()),
+                StockUpdate("twiter", BigDecimal(1.43), Date())
+        ).subscribe(object : Consumer<StockUpdate> {
+            override fun accept(stock: StockUpdate) {
+                stockDataAdapter?.add(stock)
+            }
+
+        })
     }
 
     override fun onStart() {
         super.onStart()
-        Observable
-            .just("apple", "google", "twiter")
-            .subscribe(object : Consumer<String> {
-                override fun accept(stockSymbol: String) {
-                    stockDataAdapter?.add(stockSymbol)
-                }
-            })
+
     }
 }
 
 class StockDataAdapter : RecyclerView.Adapter<StockUpdateViewHolder>() {
-    private val data = mutableListOf<String>()
+    private val data = mutableListOf<StockUpdate>()
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): StockUpdateViewHolder {
         val v = LayoutInflater.from(parent.context).inflate(R.layout.stock_update_item, parent, false)
@@ -55,10 +64,14 @@ class StockDataAdapter : RecyclerView.Adapter<StockUpdateViewHolder>() {
     }
 
     override fun onBindViewHolder(holder: StockUpdateViewHolder, position: Int) {
-        holder.stockSymbol.text = data[position]
+        data[position].apply {
+            holder.setStockSymbol(stockSymbol)
+            holder.setPrice(price)
+            holder.setDate(date)
+        }
     }
 
-    fun add(stockSymbol: String) {
+    fun add(stockSymbol: StockUpdate) {
         data.add(stockSymbol)
         notifyItemInserted(data.size - 1)
     }
@@ -66,6 +79,21 @@ class StockDataAdapter : RecyclerView.Adapter<StockUpdateViewHolder>() {
 }
 
 class StockUpdateViewHolder(v: View) : RecyclerView.ViewHolder(v) {
-    var stockSymbol: TextView = v.findViewById(R.id.stock_item_symbol)
+    private var stockSymbol: TextView = v.findViewById(R.id.stock_item_symbol)
+    private var stockPrice: TextView = v.findViewById(R.id.stock_item_price)
+    private var stockDate: TextView = v.findViewById(R.id.stock_item_date)
 
+    private val priceFormat = DecimalFormat("#0.00")
+
+    fun setStockSymbol(symbol: String) {
+        stockSymbol.text = symbol
+    }
+
+    fun setPrice(price: BigDecimal) {
+        stockPrice.text = priceFormat.format(price.toFloat())
+    }
+
+    fun setDate(date: Date) {
+        stockDate.text = android.text.format.DateFormat.format("yyyy-MM-dd hh:mm", date)
+    }
 }
